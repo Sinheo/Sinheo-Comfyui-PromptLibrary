@@ -1,0 +1,16 @@
+[project]
+name = "sinheo-comfyui-promptlibrary"
+version = "1.2.1"
+description = "Sinheo 加载文本：Goohai 风格紧凑文字提示词库节点，大类/小类.txt 两级目录，勾选菜单 + 随机 + 循环排序 + 可编辑文本框 + 添加到词库 + 勾选导出"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+dependencies = []
+
+[project.urls]
+Repository = "https://github.com/YOUR_ACCOUNT/Sinheo-Comfyui-PromptLibrary"
+
+[tool.comfy]
+PublisherId = "sinheo"
+DisplayName = "Sinheo-Comfyui-PromptLibrary"
+Icon = ""
