@@ -2,6 +2,8 @@
 
 **Sinheo-Comfyui-PromptLibrary · Sinheo 加载文本**
 
+> **截图为 1.x 版本界面，按钮文案与位置以当前版本为准。** 2.0 的变化：去掉标题、`添加到小类` 改为 `添加到图库`、类型菜单支持词库 / 图库两种随机源、图库图片只存 512px 缩略图、导出改为服务端直接写盘并按分类 / 分组选择范围。The screenshots show the 1.x UI; wording and button positions follow the current release — see [CHANGELOG](../CHANGELOG.md).
+
 | 中文 | English |
 | --- | --- |
 | 本教程每一步都是**中英对照**：左边中文，右边 English。插图用插件真实界面渲染，不是手绘示意图。 | Every step is **bilingual**: Chinese on the left, English on the right. The images are rendered from the plugin's real CSS, not hand-drawn mockups. |

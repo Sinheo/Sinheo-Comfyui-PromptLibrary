@@ -451,6 +451,138 @@ def delete_path(rel: str):
 
 
 # --------------------------------------------------------------------------- #
+# 重命名 / 批量删除（供词库管理弹窗使用）
+# --------------------------------------------------------------------------- #
+def _clean_rename(name: str) -> str:
+    """新名称：去掉用户误带的 .txt，并走同样的路径安全校验。"""
+    text = str(name or "").strip()
+    if text.lower().endswith(".txt"):
+        text = text[:-4]
+    return safe_parts(text, max_parts=1)[0]
+
+
+def _sync_order_after_rename(kind: str, old_id: str, new_id: str):
+    """重命名后同步 _order.json，避免手动排序把旧名字「复活」。"""
+    order = read_order()
+    groups = list(order["groups"])
+    cats = {}
+    if kind == "group":
+        groups = [new_id if g == old_id else g for g in groups]
+        for gid, values in order["categories"].items():
+            key = new_id if gid == old_id else gid
+            cats[key] = [new_id + v[len(old_id):] if v.startswith(old_id + "/") else v
+                         for v in values]
+    else:
+        for gid, values in order["categories"].items():
+            cats[gid] = [new_id if v == old_id else v for v in values]
+    save_order(groups, cats)
+
+
+def rename_path(rel: str, new_name: str):
+    """重命名大类文件夹或一个小类 TXT。
+
+    rel 为相对词库根的路径：
+      "服饰"          -> 重命名大类文件夹，返回 kind=group
+      "服饰/日常.txt" -> 重命名小类 TXT，返回 kind=category
+      "日常.txt"      -> 重命名根级（未分组）小类 TXT
+    同时更新 _order.json 里的 id，前端再据此迁移节点 config 里的勾选状态。
+    """
+    parts = safe_parts(rel, max_parts=2)
+    source = _under_root(parts)
+    if not source.exists():
+        raise FileNotFoundError(f"不存在：{rel}")
+    name = _clean_rename(new_name)
+
+    if len(parts) == 1 and source.is_dir():
+        target = _under_root([name])
+        if target.exists():
+            raise ValueError(f"已存在同名大类：{name}")
+        old_id, new_id, kind = parts[0], name, "group"
+    elif source.is_file() and parts[-1].lower().endswith(".txt"):
+        if len(parts) == 2:
+            target = _under_root([parts[0], name + ".txt"])
+            old_id = parts[0] + "/" + Path(parts[1]).stem
+            new_id = parts[0] + "/" + name
+        else:
+            target = _under_root([name + ".txt"])
+            old_id = Path(parts[0]).stem
+            new_id = name
+        if target.exists():
+            raise ValueError(f"已存在同名小类：{name}")
+        kind = "category"
+    else:
+        raise ValueError("只能重命名大类文件夹或小类 TXT")
+
+    if old_id == new_id:
+        return {"kind": kind, "old": old_id, "new": new_id, "rel": "/".join(parts),
+                "unchanged": True}
+    source.rename(target)
+    _sync_order_after_rename(kind, old_id, new_id)
+    return {
+        "kind": kind, "old": old_id, "new": new_id,
+        "rel": "/".join(target.relative_to(writable_root().resolve()).parts),
+    }
+
+
+def delete_paths(rels):
+    """批量删除大类 / 小类，统一备份到一个 .backup/<时间戳>/ 目录。
+
+    勾选了大类时会自动跳过它下面的小类（避免重复删除、备份不完整）；
+    完成后把被删的 id 从 _order.json 里清掉。
+    """
+    if not isinstance(rels, (list, tuple)) or not rels:
+        raise ValueError("请至少勾选一个要删除的类")
+    parsed = []
+    for raw in rels[:300]:
+        parsed.append(tuple(safe_parts(str(raw), max_parts=2)))
+    dirs = {p[0] for p in parsed if len(p) == 1}
+    unique, seen = [], set()
+    for parts in sorted(parsed, key=lambda item: len(item)):
+        if len(parts) == 2 and parts[0] in dirs:
+            continue
+        key = "/".join(parts)
+        if key not in seen:
+            seen.add(key)
+            unique.append(parts)
+    if not unique:
+        raise ValueError("没有可删除的项目")
+
+    backup_root = writable_root() / BACKUP_DIRNAME / time.strftime("%Y%m%d-%H%M%S")
+    deleted, missing = [], []
+    gone_groups, gone_cats = set(), set()
+    for parts in unique:
+        path = _under_root(parts)
+        rel = "/".join(parts)
+        if not path.exists():
+            missing.append(rel)
+            continue
+        backup = backup_root.joinpath(*parts)
+        backup.parent.mkdir(parents=True, exist_ok=True)
+        if len(parts) == 1 and path.is_dir():
+            shutil.copytree(path, backup, dirs_exist_ok=True)
+            shutil.rmtree(path)
+            gone_groups.add(parts[0])
+        else:
+            shutil.copy2(path, backup)
+            path.unlink()
+            if len(parts) == 2:
+                gone_cats.add(parts[0] + "/" + Path(parts[1]).stem)
+            else:
+                gone_cats.add(Path(parts[0]).stem)
+        deleted.append(rel)
+
+    order = read_order()
+    cats = {}
+    for gid, values in order["categories"].items():
+        if gid in gone_groups:
+            continue
+        cats[gid] = [v for v in values if v not in gone_cats]
+    save_order([g for g in order["groups"] if g not in gone_groups], cats)
+    return {"deleted": deleted, "missing": missing,
+            "backup": str(backup_root) if deleted else ""}
+
+
+# --------------------------------------------------------------------------- #
 # 生成提示词（顺序严格跟随勾选菜单；每个小类只出 1 条）
 # --------------------------------------------------------------------------- #
 def compose(parts, separator, prefix, suffix):

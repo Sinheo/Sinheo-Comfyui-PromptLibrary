@@ -1,7 +1,10 @@
 /* Sinheo-Comfyui-PromptLibrary · 紧凑节点 / 勾选菜单 / 词库管理
    所有类名以 sh- 开头，只作用于本插件，不污染画布。配色跟随 ComfyUI 暗色主题。 */
 
-.sh-body, .sh-pop, .sh-mgr, .sh-export {
+/* 「词库管理」与「图库管理」两个弹窗共用一个宽度，切换时画布露出的边不会跳。 */
+:root { --sh-panel-width: min(1180px, 96vw); }
+
+.sh-body, .sh-pop, .sh-mgr, .sh-export, .sh-gallery {
   --sh-bg: #171a20;
   --sh-card: #242932;
   --sh-hover: #2e3541;
@@ -14,7 +17,7 @@
   color: var(--sh-text);
   font: 13px/1.5 "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
 }
-.sh-body *, .sh-pop *, .sh-mgr *, .sh-export * { box-sizing: border-box; }
+.sh-body *, .sh-pop *, .sh-mgr *, .sh-export *, .sh-gallery * { box-sizing: border-box; }
 
 /* ---------------------------------------------------------------- 节点主体 */
 .sh-body {
@@ -87,9 +90,27 @@
   font: 14px "Microsoft YaHei", sans-serif;
   cursor: pointer;
 }
-.sh-bar-main { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* 词库管理 / 图库管理两个按钮等宽（各 flex:1），右侧 ↻ 固定 38px；字号也统一。 */
+.sh-bar-main {
+  flex: 1 1 0; min-width: 0; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+  font: 13px "Microsoft YaHei", sans-serif;
+}
 .sh-bar-gear { flex: 0 0 38px; font-size: 16px; }
-.sh-bar-main:hover, .sh-bar-gear:hover { background: #3a4770; border-color: #8ea2c9; }
+.sh-bar-gallery {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 0 8px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  border: 1px solid #55617a;
+  border-radius: 7px;
+  background: #2c3550;
+  color: #e2e9fa;
+  font: 13px "Microsoft YaHei", sans-serif;
+  cursor: pointer;
+}
+.sh-bar-main:hover, .sh-bar-gear:hover,
+.sh-bar-gallery:hover { background: #3a4770; border-color: #8ea2c9; }
 
 .sh-preview {
   flex: 1 1 auto;
@@ -123,6 +144,13 @@
   cursor: default;
   border-style: dashed;
 }
+/* 已接入外部文本：用蓝色虚线区别于「随机模式只读」 */
+.sh-body.sh-external-on .sh-preview.sh-locked {
+  border-color: #6f88bd;
+  background: #141b27;
+  color: #b9cce8;
+}
+.sh-body.sh-external-on .sh-row-value { color: #9dc0f0; }
 /* 底部只保留一行按钮，不再显示常驻的状态说明文字 */
 .sh-foot { display: flex; flex-wrap: nowrap; align-items: center; gap: 6px; min-height: 32px; }
 .sh-foot .sh-btn {
@@ -204,32 +232,36 @@
 .sh-input.w-sm { width: 58px; }
 .sh-input.w-md { width: 100px; }
 
-.sh-group { margin: 5px 0; border: 1px solid #333b48; border-radius: 6px; background: #1f242c; overflow: hidden; }
+/* 词库菜单只有「大类 / 小类」两级：大类独占一行更深更亮，小类整组右移并用
+   左侧竖线 + 短横连接，文字弱化一档，和图库数据源的分类 / 分组层级一致。 */
+.sh-group { margin: 6px 0; border: 1px solid #3a4250; border-radius: 6px; background: #1f242c; overflow: hidden; }
 .sh-group-head {
   display: flex; align-items: center; gap: 5px;
-  padding: 4px 6px; background: #262d38; cursor: pointer;
+  padding: 5px 8px; background: #2b3340; border-bottom: 1px solid #3a4250; cursor: pointer;
 }
-.sh-group-head:hover { background: #2e3643; }
+.sh-group-head:hover { background: #344052; }
 .sh-caret-btn { width: 13px; text-align: center; color: var(--sh-accent); background: none; border: 0; cursor: pointer; padding: 0; }
-.sh-group-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #b9cbe4; font-weight: 600; }
+.sh-group-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #e2ecfb; font-size: 13px; font-weight: 700; }
 .sh-tag { color: var(--sh-muted); font-size: 11px; }
+.sh-cats { margin-left: 24px; padding-left: 0; border-left: 1px solid #46505f; }
 .sh-cat {
-  display: flex; align-items: center; gap: 5px;
-  padding: 3px 7px 3px 18px;
+  position: relative;
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 8px 4px 15px;
   border-top: 1px solid #2b323d;
+}
+.sh-cat:first-child { border-top: 0; }
+/* 树形短横：从左侧层级线连到小类勾选框 */
+.sh-cat::before {
+  content: ""; position: absolute; left: 0; top: 50%;
+  width: 9px; height: 1px; background: #46505f;
 }
 .sh-cat:hover { background: #272e39; }
 .sh-cat.sh-off .sh-cat-name, .sh-group.sh-off .sh-group-name { color: #6f7887; }
-.sh-cat-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+.sh-cat-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #a4b1c5; font-size: 12px; cursor: pointer; }
+.sh-cat:hover .sh-cat-name, .sh-cat-name:hover { color: #e6eefb; }
 .sh-cat-count { color: var(--sh-muted); font-size: 11px; }
-.sh-items { padding: 3px 8px 7px 30px; border-top: 1px dashed #343c49; background: #1a1e25; }
-.sh-items-bar { display: flex; align-items: center; gap: 5px; margin-bottom: 4px; color: var(--sh-muted); font-size: 11px; }
-.sh-items-rule { color: #9ce0c2; font-size: 11px; white-space: nowrap; }
-.sh-item-list { max-height: 150px; overflow-y: auto; }
-.sh-item { display: flex; align-items: flex-start; gap: 5px; padding: 1px 0; color: #c4ccda; cursor: pointer; }
-.sh-item:hover { color: #fff; }
-.sh-item.sh-picked { color: #9ce0c2; }
-.sh-item input, .sh-cat input, .sh-group-head input { accent-color: #7fa8d8; margin: 2px 0 0; cursor: pointer; }
+.sh-cat input, .sh-group-head input { accent-color: #7fa8d8; margin: 2px 0 0; cursor: pointer; flex: 0 0 auto; }
 .sh-empty { padding: 14px 8px; color: var(--sh-muted); text-align: center; white-space: pre-wrap; }
 mark { background: #6b5b25; color: #fff3c4; border-radius: 2px; }
 
@@ -237,9 +269,11 @@ mark { background: #6b5b25; color: #fff3c4; border-radius: 2px; }
 .sh-mgr { position: fixed; inset: 0; z-index: 10001; background: #0009; display: grid; place-items: center; }
 /* 关键修复：作者样式 display:grid 会盖掉 [hidden] 的浏览器默认 display:none，
    导致「关闭」按钮点了没反应，必须显式强制隐藏。 */
-.sh-mgr[hidden], .sh-export[hidden] { display: none !important; }
+.sh-mgr[hidden], .sh-export[hidden], .sh-gallery[hidden],
+.sh-gallery-editbar[hidden], .sh-gallery-card-editor[hidden],
+.sh-gallery-import[hidden] { display: none !important; }
 .sh-mgr-box {
-  width: min(1020px, 95vw);
+  width: var(--sh-panel-width);
   height: min(720px, 92vh);
   display: flex;
   flex-direction: column;
@@ -332,17 +366,252 @@ mark { background: #6b5b25; color: #fff3c4; border-radius: 2px; }
 .sh-exp-msg { flex: 1; min-width: 120px; color: var(--sh-muted); font-size: 12px; }
 .sh-exp-msg.sh-error { color: var(--sh-red); }
 
-/* 「＋ 添加到」目标勾选弹窗：复用导出弹窗骨架 */
-.sh-add .sh-export-box { width: min(600px, 92vw); height: min(540px, 84vh); }
-.sh-add-preview {
-  padding: 7px 12px;
-  border-bottom: 1px solid var(--sh-line);
-  background: #202731;
-  color: #b9d3ef;
-  font-size: 12px;
-  line-height: 1.6;
-  max-height: 62px;
-  overflow: hidden;
-  word-break: break-all;
+/* 「＋ 添加到图库」弹窗：图片预览 + 提示词 + 分类/分组 */
+.sh-add .sh-export-box { width: min(620px, 92vw); height: auto; max-height: 88vh; }
+.sh-add-body { display: flex; flex-direction: column; gap: 9px; padding: 12px 14px; overflow-y: auto; }
+.sh-add-image-row { display: flex; gap: 10px; align-items: flex-start; }
+.sh-add-image-preview {
+  width: 160px; height: 120px; flex: 0 0 160px;
+  display: flex; align-items: center; justify-content: center;
+  border: 1px dashed var(--sh-line); border-radius: 6px; background: #11141a;
+  overflow: hidden; color: var(--sh-muted); font-size: 11px; text-align: center; padding: 6px;
+}
+.sh-add-image-preview img { width: 100%; height: 100%; object-fit: contain; }
+.sh-add-image-tools { flex: 1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sh-add-image-tools input[type="file"] { max-width: 100%; color: var(--sh-muted); font-size: 11px; }
+.sh-add-image-label, .sh-add-label { color: var(--sh-muted); font-size: 12px; }
+/* 「图片 · 自动存 512px 缩略图」独占一行，下面的按钮仍保持一排 */
+.sh-add-image-tools .sh-add-image-label { flex: 1 1 100%; font-size: 11px; opacity: .85; }
+.sh-add-prompt { min-height: 120px; width: 100%; resize: vertical; }
+.sh-add-target-row { display: flex; align-items: center; gap: 8px; }
+.sh-add-target-row .sh-select { flex: 1; min-width: 0; }
+
+/* ---------------------------------------------- 词库管理：批量勾选 / 重命名 */
+.sh-mgr-bulk {
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px 12px; border-bottom: 1px solid var(--sh-line); background: #202731;
+}
+.sh-mgr-bulk input { accent-color: #7fa8d8; cursor: pointer; }
+.sh-mgr-bulk-info { color: #c9d7ef; font-size: 12px; font-weight: 600; }
+.sh-tree-check { flex: 0 0 auto; margin: 0 2px 0 0 !important; }
+.sh-rename-box { display: flex; align-items: center; gap: 3px; flex: 1; min-width: 0; }
+.sh-rename-input { flex: 1; min-width: 60px; height: 22px; }
+
+/* ------------------------------------------------------------ 图库管理弹窗 */
+.sh-gallery { position: fixed; inset: 0; z-index: 10003; background: #000b; display: grid; place-items: center; }
+.sh-gallery-box {
+  position: relative;
+  width: var(--sh-panel-width);
+  height: min(820px, 94vh);
+  display: flex; flex-direction: column;
+  border: 1px solid #74809a; border-radius: 10px;
+  background: #1b1f26; box-shadow: 0 18px 60px #000d; overflow: hidden;
+}
+.sh-gallery-head {
+  display: flex; align-items: center; gap: 12px;
+  padding: 9px 14px; border-bottom: 1px solid var(--sh-line); background: #242b36;
+}
+.sh-gallery-head strong { flex: 0 0 auto; font-size: 15px; color: #e6ecf8; }
+.sh-gallery-head-center { flex: 1; display: flex; justify-content: center; }
+.sh-gallery-head-actions {
+  display: flex; align-items: center; justify-content: flex-end;
+  gap: 6px; flex: 0 0 auto; flex-wrap: wrap;
+}
+
+.sh-gallery-editbar {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 5px;
+  padding: 7px 12px; border-bottom: 1px solid var(--sh-line); background: #202731;
+}
+.sh-gallery-edit-label { color: var(--sh-muted); font-size: 12px; margin-left: 6px; }
+.sh-gallery-editbar .sh-select { max-width: 150px; }
+.sh-gallery-editbar .sh-btn.sh-primary { margin-left: auto; }
+
+.sh-gallery-search { display: flex; align-items: center; gap: 8px; padding: 9px 14px; border-bottom: 1px solid var(--sh-line); }
+.sh-gallery-search-icon { color: var(--sh-muted); font-size: 14px; }
+.sh-gallery-search-input { flex: 1; height: 32px; font-size: 13px; padding: 0 10px; }
+
+.sh-gallery-tabs {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 8px 14px; border-bottom: 1px solid var(--sh-line); background: #1d222a;
+}
+.sh-gallery-tab {
+  height: 27px; padding: 0 12px;
+  border: 1px solid var(--sh-line); border-radius: 14px;
+  background: var(--sh-card); color: var(--sh-muted);
+  font: 12px "Microsoft YaHei", sans-serif; white-space: nowrap; cursor: pointer;
+}
+.sh-gallery-tab:hover { background: var(--sh-hover); color: var(--sh-text); }
+.sh-gallery-tab.sh-active { background: #38466f; border-color: #6f88bd; color: #eef2ff; font-weight: 600; }
+
+.sh-gallery-main { flex: 1; display: flex; min-height: 0; }
+.sh-gallery-side {
+  width: 170px; flex: 0 0 170px; overflow-y: auto;
+  padding: 8px 6px; border-right: 1px solid var(--sh-line); background: #191d24;
+}
+.sh-gallery-side-title {
+  color: var(--sh-muted); font-size: 12px;
+  padding: 2px 8px 8px; margin-bottom: 6px; border-bottom: 1px solid var(--sh-line);
+}
+.sh-gallery-side-list { display: flex; flex-direction: column; gap: 3px; }
+.sh-gallery-side-item {
+  display: flex; flex-direction: column; padding: 6px 9px;
+  border: 1px solid transparent; border-radius: 5px;
+  color: #c8d3e5; font-size: 13px; cursor: pointer;
+}
+.sh-gallery-side-item:hover { background: var(--sh-hover); }
+.sh-gallery-side-item.sh-active { background: #34486c; border-color: #5a72a0; color: #fff; }
+.sh-gallery-side-item small { color: var(--sh-muted); font-size: 10px; }
+.sh-gallery-side-empty { color: var(--sh-muted); font-size: 11px; padding: 12px 8px; text-align: center; white-space: pre-wrap; }
+
+/* 图库网格：默认「整齐」模式，每个格子固定高度，不同宽高比的图片都
+   object-fit: contain 完整显示并居中，四周用深色补齐 —— 不再高低错落、
+   行内也不再出现大片空白。切到「原比例」时用 CSS 多列做瀑布流。 */
+.sh-gallery-cards {
+  flex: 1; min-width: 0; overflow-y: auto; padding: 12px;
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+  gap: 12px; align-content: start; align-items: stretch;
+  --sh-gallery-card-h: 252px;
+}
+.sh-gallery-cards.sh-layout-grid .sh-gallery-card { height: var(--sh-gallery-card-h); }
+.sh-gallery-cards.sh-layout-flow {
+  display: block; columns: 190px auto; column-gap: 12px;
+}
+.sh-gallery-cards.sh-layout-flow .sh-gallery-card {
+  display: inline-block; width: 100%; margin: 0 0 12px; break-inside: avoid;
+}
+.sh-gallery-cards.sh-layout-flow .sh-gallery-card-img { height: auto; }
+/* 卡片 = 一整张完整图片 + 浮在图片上的提示词 / 按钮，不做上下分层 */
+.sh-gallery-card {
+  position: relative; align-self: stretch;
+  border: 1px solid var(--sh-line); border-radius: 8px;
+  background: #11141a; overflow: hidden;
+}
+.sh-gallery-card:hover { border-color: #6f88bd; }
+.sh-gallery-card-img {
+  display: block; width: 100%; height: 100%;
+  object-fit: contain; background: #11141a;
+}
+.sh-gallery-card-placeholder {
+  width: 100%; height: 100%; min-height: 150px; padding: 10px;
+  display: flex; align-items: center; justify-content: center;
+  color: #8d99ad; font-size: 12px; line-height: 1.55;
+  white-space: pre-wrap; text-align: center; word-break: break-word;
+}
+.sh-layout-btn { flex: 0 0 auto; margin-left: auto; }
+/* 提示词默认不挡画面，鼠标悬停时才从底部浮出 */
+.sh-gallery-card-prompt {
+  position: absolute; left: 0; right: 0; bottom: 37px; z-index: 1;
+  padding: 16px 8px 6px; color: #f2f6ff; font-size: 11px; line-height: 1.45;
+  background: linear-gradient(to bottom, #0000, #000c);
+  max-height: 76px; overflow: hidden; word-break: break-word;
+  opacity: 0; pointer-events: none; transition: opacity .15s ease;
+}
+.sh-gallery-card:hover .sh-gallery-card-prompt { opacity: 1; }
+/* 按钮条前置在图片上，允许遮挡底部画面 */
+.sh-gallery-card-actions {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
+  display: flex; gap: 4px; padding: 8px 6px 6px;
+  background: linear-gradient(to bottom, #0000, #000d 55%);
+}
+.sh-gallery-card-actions .sh-btn { flex: 1; min-width: 0; height: 26px; padding: 0 4px; font-size: 12px; }
+.sh-gallery-card-actions .sh-gallery-fav { flex: 0 0 30px; padding: 0; font-size: 14px; color: var(--sh-muted); }
+.sh-gallery-card-actions .sh-gallery-fav.sh-faved { color: #ff8585; border-color: #a85555; background: #40262b; }
+.sh-gallery-card-edit-tools {
+  position: absolute; top: 6px; right: 6px; z-index: 3; display: flex; gap: 4px;
+}
+.sh-gallery-card-edit-tools .sh-btn {
+  width: 26px; height: 26px; min-width: 0; padding: 0; font-size: 12px;
+  background: #000a; border-color: #ffffff33;
+}
+.sh-gallery-card-edit-tools .sh-btn:hover { background: #34486c; }
+.sh-gallery-empty { grid-column: 1 / -1; padding: 40px 12px; text-align: center; color: var(--sh-muted); font-size: 13px; line-height: 1.7; }
+.sh-gallery-add {
+  display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 200px;
+  color: var(--sh-muted); border-style: dashed; cursor: pointer;
+}
+.sh-gallery-add:hover { color: var(--sh-accent); background: #262e3b; }
+.sh-gallery-add-plus { font-size: 28px; }
+
+.sh-gallery-foot { display: flex; align-items: center; gap: 12px; padding: 7px 14px; border-top: 1px solid var(--sh-line); background: #191d24; }
+.sh-gallery-count { color: #c9d7ef; font-size: 12px; }
+.sh-gallery-msg { flex: 1; color: var(--sh-muted); font-size: 12px; }
+.sh-gallery-msg.sh-error, .sh-gallery .sh-error { color: var(--sh-red); }
+
+.sh-gallery-card-editor { position: absolute; inset: 0; z-index: 5; background: #000b; display: grid; place-items: center; }
+.sh-gallery-card-panel {
+  width: min(560px, 92%); max-height: 88%; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 6px; padding: 14px;
+  border: 1px solid #74809a; border-radius: 9px;
+  background: #1b1f26; box-shadow: 0 18px 50px #000d;
+}
+.sh-gallery-card-panel-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.sh-gallery-card-panel-head strong { color: #e6ecf8; font-size: 15px; }
+.sh-gallery-field { color: var(--sh-muted); font-size: 12px; margin-top: 4px; }
+.sh-gallery-field-input { width: 100%; }
+.sh-gallery-card-panel .sh-textarea { min-height: 130px; flex: none; }
+.sh-gallery-card-row { display: flex; gap: 6px; }
+.sh-gallery-card-row .sh-select { flex: 1; max-width: none; }
+.sh-gallery-card-image-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sh-gallery-card-image-row input[type="file"] { max-width: 230px; color: var(--sh-muted); font-size: 11px; }
+.sh-gallery-card-image-preview {
+  width: 96px; height: 72px; display: flex; align-items: center; justify-content: center;
+  border: 1px dashed var(--sh-line); border-radius: 5px; background: #11141a; overflow: hidden;
+}
+.sh-gallery-card-image-preview img { width: 100%; height: 100%; object-fit: contain; }
+.sh-gallery-hint { color: var(--sh-muted); font-size: 11px; }
+.sh-gallery-card-panel-foot { display: flex; align-items: center; gap: 6px; margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--sh-line); }
+.sh-gallery-card-panel-foot .sh-gallery-msg { flex: 1; }
+
+/* ---------------------------------------------- 类型菜单：随机数据源切换 */
+.sh-source-tabs { display: flex; gap: 4px; padding: 8px 10px 0; border-bottom: 1px solid var(--sh-line); }
+.sh-source-tab {
+  flex: 1; height: 28px; border: 1px solid var(--sh-line); border-bottom: none;
+  border-radius: 6px 6px 0 0; background: #1b2029; color: var(--sh-muted);
+  font-size: 12px; cursor: pointer;
+}
+.sh-source-tab:hover { color: var(--sh-text); background: var(--sh-hover); }
+.sh-source-tab.sh-active { background: #34486c; border-color: #6f88bd; color: #eef2ff; font-weight: 600; }
+
+.sh-gallery-pop-row { display: flex; align-items: center; gap: 7px; padding: 5px 9px; color: #c8d3e5; font-size: 12px; cursor: pointer; }
+.sh-gallery-pop-row:hover { background: var(--sh-hover); }
+.sh-gallery-pop-row input { accent-color: #7fa8d8; cursor: pointer; }
+.sh-gallery-pop-fav { border-bottom: 1px solid var(--sh-line); color: #ffb3b3; }
+.sh-gallery-pop-cat { border-bottom: 1px solid var(--sh-line); padding: 3px 0; }
+.sh-gallery-pop-group { padding-left: 24px; color: var(--sh-muted); }
+.sh-gallery-pop-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------------------------------------------------------- 图库导入面板 */
+.sh-gallery-import { position: absolute; inset: 0; z-index: 6; background: #000b; display: grid; place-items: center; }
+.sh-gallery-import-panel {
+  width: min(500px, 92%); display: flex; flex-direction: column; gap: 9px; padding: 16px;
+  border: 1px solid #74809a; border-radius: 9px; background: #1b1f26; box-shadow: 0 18px 50px #000d;
+}
+.sh-gallery-import-head { display: flex; align-items: center; justify-content: space-between; }
+.sh-gallery-import-head strong { color: #e6ecf8; font-size: 15px; }
+.sh-gallery-import-panel input[type="file"] { color: var(--sh-muted); font-size: 12px; }
+.sh-gallery-import-hint, .sh-gallery-import-note { color: var(--sh-muted); font-size: 12px; line-height: 1.6; }
+.sh-gallery-import-note { color: #d8b26a; }
+.sh-gallery-import-foot { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; padding-top: 8px; border-top: 1px solid var(--sh-line); }
+.sh-gallery-import-foot .sh-gallery-msg { flex: 1; min-width: 120px; }
+
+/* ---------------------------------------------------------- 图库导出面板 */
+/* 复用导入面板的遮罩；两行输入框让用户可以填任意本机保存位置 */
+.sh-gallery-export-panel { width: min(620px, 92%); }
+.sh-gallery-export-row { display: flex; align-items: center; gap: 8px; }
+.sh-gallery-export-label { flex: 0 0 52px; color: var(--sh-muted); font-size: 12px; }
+.sh-gallery-export-input, .sh-gallery-export-select { flex: 1; min-width: 0; }
+/* 消息占第一行，按钮统一靠右下角 */
+.sh-gallery-export-panel .sh-gallery-import-foot { justify-content: flex-end; }
+/* 「只记住目标」开关开启时的高亮状态 */
+.sh-btn.sh-toggle-on { border-color: #4d8f6e; background: #274a3b; color: #b9f0d2; }
+.sh-gallery-export-panel .sh-gallery-msg {
+  flex: 1 1 100%; min-height: 17px; word-break: break-all; line-height: 1.5;
+}
+.sh-gallery-export-panel .sh-gallery-msg[title] { color: #9ce0c2; }
+/* 保存失败时不能再只是「一行小字」，要让用户一眼看到原因 */
+.sh-gallery-export-panel .sh-gallery-msg.sh-error {
+  padding: 7px 9px; border: 1px solid rgba(255, 120, 120, .38);
+  border-radius: 6px; background: rgba(190, 60, 60, .14);
+  font-size: 12px; line-height: 1.6; color: #ff9a9a;
 }
 
